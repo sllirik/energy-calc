@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2420">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Свет ЛНР">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Счётчик электроэнергии — ЛНР</title>
+<style>
+:root{--bg:#eef0ea;--card:#fff;--ink:#1d2421;--mut:#68716c;--line:#d5dad2;--acc:#1f6f5c;--hot:#c2410c;--disp:#1b2420;--dispfg:#e8f5a8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a17;--card:#1d2521;--ink:#e6ebe7;--mut:#8f9b94;--line:#2f3a35;--acc:#5cc2a6;--hot:#fb923c;--disp:#0c110f;--dispfg:#e8f5a8}}
+:root[data-theme="dark"]{--bg:#141a17;--card:#1d2521;--ink:#e6ebe7;--mut:#8f9b94;--line:#2f3a35;--acc:#5cc2a6;--hot:#fb923c;--disp:#0c110f;--dispfg:#e8f5a8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 14px 40px}
+h1{font-size:22px;margin:8px 0 2px;font-weight:600}
+.sub{color:var(--mut);font-size:14px;margin:0 0 14px}
+.meter{background:var(--disp);color:var(--dispfg);border-radius:14px;padding:18px 16px;margin-bottom:14px}
+.meter .big{font:600 clamp(34px,10vw,52px)/1 ui-monospace,Menlo,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.meter .big small{font-size:.5em;opacity:.7;margin-left:6px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.row3 div{border-top:1px solid #ffffff26;padding-top:8px}
+.row3 b{display:block;font:500 17px ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.row3 span{font-size:12px;opacity:.7}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+label{font-size:13px;color:var(--mut);display:block;margin-bottom:3px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.grid{display:grid;gap:10px}
+.g-add{grid-template-columns:1fr 1fr}
+.g-add .wide{grid-column:1/-1}
+.g-tar{grid-template-columns:1fr 1fr 1fr}
+.pw{display:flex;gap:6px}.pw input{flex:1}.pw select{width:76px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 12px;min-height:42px}
+button.main{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+:root:not([data-theme="light"]) button.main{color:#07140f}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{min-height:34px;padding:4px 10px;font-size:13px;color:var(--mut)}
+.item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.item:first-child{border-top:0}
+.item .n{font-weight:500}
+.item .d{font-size:13px;color:var(--mut)}
+.item .r{text-align:right;font:500 16px monospace;font-variant-numeric:tabular-nums}
+.item .r small{display:block;font:400 12px sans-serif;color:var(--mut)}
+.item .x{grid-column:1/-1;display:flex;gap:6px}
+.item .x button{min-height:32px;padding:2px 10px;font-size:13px;color:var(--mut)}
+.empty{color:var(--mut);text-align:center;padding:14px 0;font-size:14px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex;margin:6px 0 4px}
+.bar i{display:block;height:100%}
+.t{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
+.t span:last-child{font-family:monospace;font-variant-numeric:tabular-nums}
+.note{font-size:12.5px;color:var(--mut);margin:8px 0 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Счётчик электроэнергии</h1>
+<p class="sub">ЛНР · добавьте потребителей и узнайте расход в кВт·ч и рублях</p>
+
+<section class="meter" aria-live="polite">
+  <div class="big"><span id="total">0,00</span><small>₽</small></div>
+  <div class="row3">
+    <div><b id="kwh">0</b><span>кВт·ч за период</span></div>
+    <div><b id="perday">0,00</b><span>₽ в сутки</span></div>
+    <div><b id="avg">0,00</b><span>₽ средняя за кВт·ч</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Добавить потребителя</h2>
+  <div class="grid g-add">
+    <div class="wide"><label for="name">Название</label><input id="name" placeholder="Например, холодильник"></div>
+    <div><label for="pw">Мощность</label><div class="pw"><input id="pw" type="number" inputmode="decimal" min="0" step="any" placeholder="150"><select id="pu" aria-label="Единица"><option>Вт</option><option>кВт</option></select></div></div>
+    <div><label for="hrs">Часов в сутки</label><input id="hrs" type="number" inputmode="decimal" min="0" max="24" step="any" placeholder="24"></div>
+    <div><label for="qty">Количество</label><input id="qty" type="number" inputmode="numeric" min="1" step="1" value="1"></div>
+    <div><label for="duty">Загрузка, % (если работает не на полную)</label><input id="duty" type="number" inputmode="numeric" min="1" max="100" step="1" value="100"></div>
+    <div class="wide"><button class="main" id="add">Добавить</button></div>
+  </div>
+  <div class="chips" id="chips"></div>
+</section>
+
+<section class="card">
+  <h2>Потребители</h2>
+  <div id="list"></div>
+  <div class="tools"><button id="clear">Очистить список</button></div>
+</section>
+
+<section class="card">
+  <h2>Период и тариф</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+    <div><label for="days">Дней в периоде</label><input id="days" type="number" inputmode="numeric" min="1" max="366" value="30"></div>
+    <div><label for="preset">Тариф</label>
+      <select id="preset">
+        <option value="new">С 1.10.2026 — население</option>
+        <option value="old">До 1.10.2026 — население</option>
+        <option value="custom">Свой тариф</option>
+      </select></div>
+  </div>
+  <div class="grid g-tar">
+    <div><label for="l1">1-й диапазон до, кВт·ч</label><input id="l1" type="number" inputmode="decimal" step="any"></div>
+    <div><label for="l2">2-й диапазон до, кВт·ч</label><input id="l2" type="number" inputmode="decimal" step="any"></div>
+    <div><label>3-й — свыше</label><input id="l2b" disabled></div>
+    <div><label for="r1">Цена 1-го, ₽/кВт·ч</label><input id="r1" type="number" inputmode="decimal" step="any"></div>
+    <div><label for="r2">Цена 2-го, ₽/кВт·ч</label><input id="r2" type="number" inputmode="decimal" step="any"></div>
+    <div><label for="r3">Цена 3-го, ₽/кВт·ч</label><input id="r3" type="number" inputmode="decimal" step="any"></div>
+  </div>
+  <p class="note">Тарифы одноставочные, с НДС, для городского населения без электроплиты и электроотопления: 1,91 / 4,40 / 6,69 ₽ до 1 октября 2026 (диапазон до 100 кВт·ч) и 2,86 / 6,55 / 10,52 ₽ с 1 октября 2026 (диапазон до 150 кВт·ч). Для села, электроплит, отопительного сезона и льготных категорий ставки другие — выберите «Свой тариф» и введите их из квитанции или с сайта Комитета тарифного и ценового регулирования ЛНР.</p>
+</section>
+
+<section class="card">
+  <h2>Как набегает сумма</h2>
+  <div class="bar" id="bar"></div>
+  <div id="tiers"></div>
+</section>
+</main>
+
+<script>
+(function(){
+var PRESETS={
+  new:{l1:150,l2:800,r1:2.86,r2:6.55,r3:10.52},
+  old:{l1:100,l2:800,r1:1.91,r2:4.40,r3:6.69}
+};
+var QUICK=[["Холодильник",150,8,"Вт"],["Лампа LED",10,5,"Вт"],["Телевизор",100,4,"Вт"],["Стиральная машина",2000,1,"Вт"],["Чайник",2000,0.5,"Вт"],["Кондиционер",1,6,"кВт"],["Бойлер",1.5,3,"кВт"],["Компьютер",250,6,"Вт"]];
+var items=[],$=function(id){return document.getElementById(id)};
+var tariff={preset:"new",days:30,l1:150,l2:800,r1:2.86,r2:6.55,r3:10.52};
+var COL=["#1f6f5c","#d9a21b","#c2410c"];
+
+function load(){try{var s=localStorage.getItem("lnr-meter");if(s){var o=JSON.parse(s);if(o.items)items=o.items;if(o.tariff)tariff=Object.assign(tariff,o.tariff)}}catch(e){}}
+function save(){try{localStorage.setItem("lnr-meter",JSON.stringify({items:items,tariff:tariff}))}catch(e){}}
+function num(v,d){var x=parseFloat(String(v).replace(",","."));return isFinite(x)?x:d}
+function f(n,d){return n.toLocaleString("ru-RU",{minimumFractionDigits:d,maximumFractionDigits:d})}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+function cost(k){
+  var t=tariff,a=Math.min(k,t.l1),b=Math.max(0,Math.min(k,t.l2)-t.l1),c=Math.max(0,k-t.l2);
+  return {a:a,b:b,c:c,ca:a*t.r1,cb:b*t.r2,cc:c*t.r3,sum:a*t.r1+b*t.r2+c*t.r3};
+}
+function kwhOf(it){return it.kw*it.h*it.q*(it.duty/100)*tariff.days}
+
+function render(){
+  var tot=0;items.forEach(function(it){it.m=kwhOf(it);tot+=it.m});
+  var c=cost(tot);
+  $("total").textContent=f(c.sum,2);
+  $("kwh").textContent=f(tot,1);
+  $("perday").textContent=f(c.sum/Math.max(1,tariff.days),2);
+  $("avg").textContent=tot>0?f(c.sum/tot,2):"0,00";
+
+  var L=$("list");
+  if(!items.length){L.innerHTML='<div class="empty">Пока пусто. Добавьте первого потребителя или выберите из быстрых вариантов.</div>'}
+  else{
+    L.innerHTML=items.map(function(it,i){
+      var share=tot>0?c.sum*it.m/tot:0;
+      var p=it.kw>=1?f(it.kw,2)+" кВт":f(it.kw*1000,0)+" Вт";
+      return '<div class="item"><div><div class="n">'+esc(it.name)+'</div><div class="d">'+p+' × '+f(it.h,1)+' ч/сут × '+it.q+' шт'+(it.duty<100?' × '+it.duty+'%':'')+'</div></div>'+
+      '<div class="r">'+f(share,2)+' ₽<small>'+f(it.m,1)+' кВт·ч</small></div>'+
+      '<div class="x"><button data-e="'+i+'">Изменить</button><button data-d="'+i+'">Удалить</button></div></div>';
+    }).join("");
+  }
+
+  var parts=[[c.a,c.ca,tariff.r1,"1-й диапазон"],[c.b,c.cb,tariff.r2,"2-й диапазон"],[c.c,c.cc,tariff.r3,"3-й диапазон"]];
+  $("tiers").innerHTML=parts.map(function(p){return '<div class="t"><span>'+p[3]+' · '+f(p[0],1)+' кВт·ч × '+f(p[2],2)+' ₽</span><span>'+f(p[1],2)+' ₽</span></div>'}).join("");
+  $("bar").innerHTML=c.sum>0?parts.map(function(p,i){return '<i style="width:'+(p[1]/c.sum*100)+'%;background:'+COL[i]+'"></i>'}).join(""):"";
+  save();
+}
+
+function syncTariff(){
+  ["l1","l2","r1","r2","r3"].forEach(function(k){$(k).value=tariff[k]});
+  $("l2b").value=tariff.l2;$("days").value=tariff.days;$("preset").value=tariff.preset;
+  var ro=tariff.preset!=="custom";["l1","l2","r1","r2","r3"].forEach(function(k){$(k).readOnly=ro});
+}
+
+$("preset").addEventListener("change",function(){
+  var v=this.value;tariff.preset=v;if(PRESETS[v])Object.assign(tariff,PRESETS[v]);syncTariff();render();
+});
+["l1","l2","r1","r2","r3"].forEach(function(k){$(k).addEventListener("input",function(){tariff[k]=num(this.value,0);$("l2b").value=tariff.l2;render()})});
+$("days").addEventListener("input",function(){tariff.days=Math.max(1,num(this.value,30));render()});
+
+var editing=-1;
+function readForm(){
+  var p=num($("pw").value,0),kw=$("pu").value==="кВт"?p:p/1000;
+  return {name:$("name").value.trim()||"Потребитель",kw:kw,h:Math.min(24,Math.max(0,num($("hrs").value,0))),q:Math.max(1,Math.round(num($("qty").value,1))),duty:Math.min(100,Math.max(1,num($("duty").value,100)))};
+}
+function resetForm(){$("name").value="";$("pw").value="";$("hrs").value="";$("qty").value=1;$("duty").value=100;$("pu").value="Вт";editing=-1;$("add").textContent="Добавить"}
+$("add").addEventListener("click",function(){
+  var it=readForm();
+  if(!(it.kw>0)){$("pw").focus();return}
+  if(editing>=0)items[editing]=it;else items.push(it);
+  resetForm();render();
+});
+$("list").addEventListener("click",function(e){
+  var d=e.target.getAttribute("data-d"),ed=e.target.getAttribute("data-e");
+  if(d!==null){items.splice(+d,1);if(editing>=0)resetForm();render()}
+  if(ed!==null){var it=items[+ed];editing=+ed;$("name").value=it.name;
+    if(it.kw>=1){$("pw").value=it.kw;$("pu").value="кВт"}else{$("pw").value=Math.round(it.kw*1000*100)/100;$("pu").value="Вт"}
+    $("hrs").value=it.h;$("qty").value=it.q;$("duty").value=it.duty;$("add").textContent="Сохранить";$("name").focus();window.scrollTo({top:0,behavior:"smooth"})}
+});
+$("clear").addEventListener("click",function(){if(items.length&&confirm("Удалить всех потребителей из списка?")){items=[];resetForm();render()}});
+
+$("chips").innerHTML=QUICK.map(function(q,i){return '<button data-q="'+i+'">'+q[0]+'</button>'}).join("");
+$("chips").addEventListener("click",function(e){
+  var i=e.target.getAttribute("data-q");if(i===null)return;var q=QUICK[+i];
+  $("name").value=q[0];$("pw").value=q[1];$("pu").value=q[3];$("hrs").value=q[2];$("hrs").focus();
+});
+
+load();syncTariff();render();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
